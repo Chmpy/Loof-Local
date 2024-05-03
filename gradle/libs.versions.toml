@@ -12,6 +12,9 @@ room = "2.6.0-beta01"
 simple-commons = "e3c1bea9a9"
 #Gradle
 gradlePlugins-agp = "8.4.0"
+#Tensorflow
+tensorflow = "2.3.0"
+tensorflow-lite-support = "0.4.4"
 #build
 app-build-compileSDKVersion = "34"
 app-build-targetSDK = "34"
@@ -32,6 +35,10 @@ androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 #Simple Mobile Tools
 simple-tools-commons = { module = "com.github.SimpleMobileTools:Simple-Commons", version.ref = "simple-commons" }
+#Tensorflow
+tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflow" }
+tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflow" }
+tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-lite-support" }
 [bundles]
 room = [
     "androidx-room-ktx",

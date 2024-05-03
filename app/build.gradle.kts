@@ -1,6 +1,7 @@
-import java.io.FileInputStream
+
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.konan.properties.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android)
@@ -21,6 +22,11 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     compileSdk = project.libs.versions.app.build.compileSDKVersion.get().toInt()
+
+    // Specify tflite file should not be compressed for the app apk
+    androidResources {
+        noCompress += "tflite"
+    }
 
     defaultConfig {
         applicationId = libs.versions.app.version.appId.get()
@@ -100,6 +106,9 @@ dependencies {
     implementation(libs.simple.tools.commons)
     implementation(libs.androidx.emoji2.bundled)
     implementation(libs.androidx.autofill)
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.tensorflow.lite.support)
 
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
