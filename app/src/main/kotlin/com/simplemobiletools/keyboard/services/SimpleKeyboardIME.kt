@@ -29,9 +29,13 @@ import androidx.autofill.inline.common.TextViewStyle
 import androidx.autofill.inline.common.ViewStyle
 import androidx.autofill.inline.v1.InlineSuggestionUi
 import androidx.core.graphics.drawable.toBitmap
-import com.simplemobiletools.commons.extensions.*
+import com.simplemobiletools.commons.extensions.applyColorFilter
+import com.simplemobiletools.commons.extensions.getProperBackgroundColor
+import com.simplemobiletools.commons.extensions.getProperTextColor
+import com.simplemobiletools.commons.extensions.getSharedPrefs
 import com.simplemobiletools.commons.helpers.isNougatPlus
 import com.simplemobiletools.keyboard.R
+import com.simplemobiletools.keyboard.bert.BertHelper
 import com.simplemobiletools.keyboard.databinding.KeyboardViewKeyboardBinding
 import com.simplemobiletools.keyboard.extensions.config
 import com.simplemobiletools.keyboard.extensions.getStrokeColor
@@ -66,6 +70,8 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
     override fun onInitializeInterface() {
         super.onInitializeInterface()
         safeStorageContext.getSharedPrefs().registerOnSharedPreferenceChangeListener(this)
+        val Bert = BertHelper(this)
+        Bert.runBertInference("Hello")
     }
 
     override fun onCreateInputView(): View {
