@@ -4,25 +4,13 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 
 object BertPostprocessor {
     fun postprocess(outputTensor: TensorBuffer): String {
-//        val output = extractOutput(outputTensor)
-//        val labels = interpretOutput(output)
-//        val feedback = generateFeedback(labels)
-//        return feedback
-        return "Feedback"
-    }
+        val outputData = outputTensor.floatArray
 
-//    private fun extractOutput(outputTensor: TensorBuffer): Array<FloatArray> {
-//        // Extract the relevant output from the tensor
-//        // For example: return outputTensor.flattenAsFloatArray().reshape(outputShape)
-//    }
-//
-//    private fun interpretOutput(output: Array<FloatArray>): List<String> {
-//        // Interpret the output (e.g., sequence labeling)
-//        // For example: return output.map { labelForScore(it) }
-//    }
-//
-//    private fun generateFeedback(labels: List<String>): String {
-//        // Generate feedback and suggestions based on the labels
-//        // For example: return "Feedback: ${labels.joinToString(", ")}"
-//    }
+        // Assume outputData contains a single float that indicates correctness:
+        // 1.0 for correct, 0.0 for incorrect
+        val isCorrect = outputData[0] > 0.5  // Assuming threshold at 0.5 for binary classification
+
+        return if (isCorrect) "Ja" else "Nee"
+    }
 }
+

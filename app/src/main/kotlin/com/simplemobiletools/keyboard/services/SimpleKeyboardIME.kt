@@ -66,12 +66,11 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
     private var breakIterator: BreakIterator? = null
 
     private lateinit var binding: KeyboardViewKeyboardBinding
+    private lateinit var Bert: BertHelper
 
     override fun onInitializeInterface() {
         super.onInitializeInterface()
         safeStorageContext.getSharedPrefs().registerOnSharedPreferenceChangeListener(this)
-        val Bert = BertHelper(this)
-        Bert.runBertInference("Hello")
     }
 
     override fun onCreateInputView(): View {

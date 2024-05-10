@@ -109,6 +109,8 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.gpu)
     implementation(libs.tensorflow.lite.support)
+    implementation(libs.gson)
+    implementation(libs.tokenizer)
 
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
