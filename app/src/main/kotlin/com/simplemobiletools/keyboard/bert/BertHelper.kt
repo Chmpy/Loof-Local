@@ -22,14 +22,14 @@ class BertHelper(context: Context) {
 
     private fun loadVocabulary(context: Context): Map<String, Int> {
         val assetManager = context.assets
-        val inputStream = assetManager.open("vocab.json")
+        val inputStream = assetManager.open("vocab 2023.json")
         val json = inputStream.bufferedReader().use { it.readText() }
         val mapType = object : TypeToken<Map<String, Int>>() {}.type
         return Gson().fromJson(json, mapType)
     }
 
     private fun loadModel(context: Context, vocab: Map<String, Int>) : Interpreter {
-        val assetFileDescriptor = context.assets.openFd("robbert-v2-dutch-base.tflite")
+        val assetFileDescriptor = context.assets.openFd("robbert-2023-dutch-large.tflite")
         val fileChannel = FileInputStream(assetFileDescriptor.fileDescriptor).channel
         val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, assetFileDescriptor.startOffset, assetFileDescriptor.declaredLength)
         val opts = Interpreter.Options()
@@ -43,10 +43,11 @@ class BertHelper(context: Context) {
 
         // Get input tensor shape and data type
         val inputTensorShape = bertInterpreter.getInputTensor(0).shape()
-        val inputTensorDataType = bertInterpreter.getInputTensor(0).dataType()
+        Log.d("BertHelper", "Input tensor shape: ${inputTensorShape.contentToString()}")
 
         // Create input tensor from preprocessed data
-        val inputTensor = TensorBuffer.createFixedSize(inputTensorShape, inputTensorDataType)
+        val inputTensor = TensorBuffer.createFixedSize(inputTensorShape, DataType.FLOAT32)
+        inputTensor.loadArray(preprocessedInput.tokenIds)
 
         // Run inference
         val outputTensor = TensorBuffer.createFixedSize(bertInterpreter.getOutputTensor(0).shape(), DataType.FLOAT32)
