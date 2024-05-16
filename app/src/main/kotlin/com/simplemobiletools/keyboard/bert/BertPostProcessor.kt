@@ -1,9 +1,11 @@
 package com.simplemobiletools.keyboard.bert
 
+import android.util.Log
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 
 object BertPostprocessor {
     fun postprocess(outputTensor: TensorBuffer): String {
+        Log.d("BertPostprocessor", "Postprocessing output tensor, content: ${outputTensor.floatArray.contentToString()}")
         val outputData = outputTensor.floatArray
 
         // Assume outputData contains a single float that indicates correctness:
