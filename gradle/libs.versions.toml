@@ -15,10 +15,9 @@ gradlePlugins-agp = "8.4.0"
 #Tensorflow
 tensorflow = "2.3.0"
 tensorflow-lite-support = "0.4.4"
+tensorflow-lite-select-tf-ops = "2.16.1"
 #Gson
 gson = "2.8.9"
-#Tokenizers
-tokenizer = "1.2.0"
 #build
 app-build-compileSDKVersion = "34"
 app-build-targetSDK = "34"
@@ -43,10 +42,9 @@ simple-tools-commons = { module = "com.github.SimpleMobileTools:Simple-Commons",
 tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflow" }
 tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflow" }
 tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-lite-support" }
+tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflow-lite-select-tf-ops" }
 #Gson
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-#Tokenizers
-tokenizer = { module = "com.londogard:nlp", version.ref = "tokenizer" }
 
 [bundles]
 room = [

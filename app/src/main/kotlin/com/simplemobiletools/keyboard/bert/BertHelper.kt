@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.flex.FlexDelegate
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
@@ -28,12 +29,18 @@ class BertHelper(context: Context) {
         return Gson().fromJson(json, mapType)
     }
 
-    private fun loadModel(context: Context, vocab: Map<String, Int>) : Interpreter {
-        val assetFileDescriptor = context.assets.openFd("1.tflite")
+    private fun loadModel(context: Context, vocab: Map<String, Int>): Interpreter {
+        val assetFileDescriptor = context.assets.openFd("robbert_model.tflite")
         val fileChannel = FileInputStream(assetFileDescriptor.fileDescriptor).channel
         val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, assetFileDescriptor.startOffset, assetFileDescriptor.declaredLength)
         val opts = Interpreter.Options()
         opts.setNumThreads(4)
+        opts.setAllowBufferHandleOutput(true)
+
+        // Add Flex delegate to the interpreter options
+        val flexDelegate = FlexDelegate()
+        opts.addDelegate(flexDelegate)
+
         return Interpreter(modelBuffer, opts)
     }
 
@@ -43,11 +50,10 @@ class BertHelper(context: Context) {
 
         // Ensure preprocessed data has correct lengths
         val inputLength = preprocessedInput.tokenIds.size
-        val segmentLength = preprocessedInput.segmentIds.size
-        val attentionMaskLength = preprocessedInput.attentionMask.size
+        val segmentIdsLength = preprocessedInput.segmentIds.size
 
-        if (inputLength != segmentLength || inputLength != attentionMaskLength) {
-            throw IllegalArgumentException("Mismatch between lengths of token IDs, segment IDs, and attention mask.")
+        if (inputLength != segmentIdsLength) {
+            throw IllegalArgumentException("Mismatch between lengths of token IDs and segment IDs.")
         }
 
         // Get output tensor shape to determine the expected input length
@@ -58,31 +64,24 @@ class BertHelper(context: Context) {
         val inputShape = intArrayOf(1, expectedInputLength)
 
         // Initialize input arrays to match the expected length
-        val tokenIdsFloatArray = FloatArray(expectedInputLength) { 0f }
-        val attentionMaskFloatArray = FloatArray(expectedInputLength) { 0f }
-        val segmentIdsFloatArray = FloatArray(expectedInputLength) { 0f }
+        val tokenIdsFloatArray = FloatArray(expectedInputLength)
+        val segmentIdsFloatArray = FloatArray(expectedInputLength)
 
         // Fill the input arrays with the preprocessed data, handling padding/truncation
-        for (i in preprocessedInput.tokenIds.indices) {
-            if (i < expectedInputLength) {
-                tokenIdsFloatArray[i] = preprocessedInput.tokenIds[i].toFloat()
-                attentionMaskFloatArray[i] = preprocessedInput.attentionMask[i].toFloat()
-                segmentIdsFloatArray[i] = preprocessedInput.segmentIds[i].toFloat()
-            }
+        for (i in 0 until expectedInputLength) {
+            tokenIdsFloatArray[i] = if (i < preprocessedInput.tokenIds.size) preprocessedInput.tokenIds[i].toFloat() else 0f
+            segmentIdsFloatArray[i] = if (i < preprocessedInput.segmentIds.size) preprocessedInput.segmentIds[i].toFloat() else 0f
         }
 
         // Create input tensors from preprocessed data
         val inputIdsTensor = TensorBuffer.createFixedSize(inputShape, DataType.FLOAT32)
-        val attentionMaskTensor = TensorBuffer.createFixedSize(inputShape, DataType.FLOAT32)
         val segmentIdsTensor = TensorBuffer.createFixedSize(inputShape, DataType.FLOAT32)
 
         inputIdsTensor.loadArray(tokenIdsFloatArray)
-        attentionMaskTensor.loadArray(attentionMaskFloatArray)
         segmentIdsTensor.loadArray(segmentIdsFloatArray)
 
         // Log the tensor data to ensure correctness
         Log.d("BertHelper", "Token IDs tensor data: ${tokenIdsFloatArray.contentToString()}")
-        Log.d("BertHelper", "Attention Mask tensor data: ${attentionMaskFloatArray.contentToString()}")
         Log.d("BertHelper", "Segment IDs tensor data: ${segmentIdsFloatArray.contentToString()}")
 
         // Create output tensor
@@ -92,8 +91,16 @@ class BertHelper(context: Context) {
 
         val outputTensor = TensorBuffer.createFixedSize(outputTensorShape, outputTensorDataType)
 
+        // Log expected number of input tensors
+        Log.d("BertHelper", "Expected number of input tensors: ${bertInterpreter.inputTensorCount}")
+
+        // Ensure the number of input tensors matches the model's expectations
+        if (bertInterpreter.inputTensorCount != 2) {
+            throw IllegalArgumentException("Model expects 2 input tensors.")
+        }
+
         // Run inference
-        val inputs = arrayOf(inputIdsTensor.buffer, attentionMaskTensor.buffer, segmentIdsTensor.buffer)
+        val inputs = arrayOf(inputIdsTensor.buffer, segmentIdsTensor.buffer)
         val outputs = hashMapOf(0 to outputTensor.buffer)
 
         try {
@@ -106,5 +113,6 @@ class BertHelper(context: Context) {
         // Postprocess the output tensor to get the final result
         return BertPostprocessor.postprocess(outputTensor)
     }
+
 
 }

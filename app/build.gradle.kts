@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.gpu)
     implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.select.tf.ops)
     implementation(libs.gson)
 
     implementation(libs.bundles.room)
