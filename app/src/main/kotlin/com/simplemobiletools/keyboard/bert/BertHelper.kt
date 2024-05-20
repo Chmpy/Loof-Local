@@ -17,7 +17,7 @@ class BertHelper(context: Context) {
 
     init {
         vocab = loadVocabulary(context)
-        bertInterpreter = loadModel(context, vocab)
+        bertInterpreter = loadModel(context)
         Log.d("BertHelper", "BERT interpreter loaded")
     }
 
@@ -29,15 +29,12 @@ class BertHelper(context: Context) {
         return Gson().fromJson(json, mapType)
     }
 
-    private fun loadModel(context: Context, vocab: Map<String, Int>): Interpreter {
+    private fun loadModel(context: Context): Interpreter {
         val assetFileDescriptor = context.assets.openFd("robbert_model.tflite")
         val fileChannel = FileInputStream(assetFileDescriptor.fileDescriptor).channel
         val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, assetFileDescriptor.startOffset, assetFileDescriptor.declaredLength)
         val opts = Interpreter.Options()
         opts.setNumThreads(4)
-        opts.setAllowBufferHandleOutput(true)
-
-        // Add Flex delegate to the interpreter options
         val flexDelegate = FlexDelegate()
         opts.addDelegate(flexDelegate)
 
@@ -46,65 +43,42 @@ class BertHelper(context: Context) {
 
     fun runBertInference(input: String): String {
         Log.d("BertHelper", "Running BERT inference on input: $input")
-        val preprocessedInput = BertPreprocessor.preprocess(input, vocab)
 
-        // Ensure preprocessed data has correct lengths
-        val inputLength = preprocessedInput.tokenIds.size
-        val segmentIdsLength = preprocessedInput.segmentIds.size
+        // Hardcoded values based on the provided information, converted to FLOAT32
+        val inputIds = floatArrayOf(0.0f, 21648.0f, 2579.0f, 3.0f)
+        val attentionMask = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f,)
 
-        if (inputLength != segmentIdsLength) {
-            throw IllegalArgumentException("Mismatch between lengths of token IDs and segment IDs.")
-        }
-
-        // Get output tensor shape to determine the expected input length
+        val inputTensorShape = intArrayOf(1, inputIds.size)
         val outputTensorShape = bertInterpreter.getOutputTensor(0).shape()
-        val expectedInputLength = outputTensorShape[1]  // Assuming the second dimension is the length
+        val inputDataType = DataType.FLOAT32
+        val outputDataType = DataType.FLOAT32
 
-        // Define input tensor shapes based on the expected input length
-        val inputShape = intArrayOf(1, expectedInputLength)
+        // Resize the input tensors to match the actual input shapes
+        bertInterpreter.resizeInput(0, outputTensorShape, true)
+        bertInterpreter.resizeInput(1, outputTensorShape, true)
+        bertInterpreter.allocateTensors()
 
-        // Initialize input arrays to match the expected length
-        val tokenIdsFloatArray = FloatArray(expectedInputLength)
-        val segmentIdsFloatArray = FloatArray(expectedInputLength)
-
-        // Fill the input arrays with the preprocessed data, handling padding/truncation
-        for (i in 0 until expectedInputLength) {
-            tokenIdsFloatArray[i] = if (i < preprocessedInput.tokenIds.size) preprocessedInput.tokenIds[i].toFloat() else 0f
-            segmentIdsFloatArray[i] = if (i < preprocessedInput.segmentIds.size) preprocessedInput.segmentIds[i].toFloat() else 0f
-        }
-
-        // Create input tensors from preprocessed data
-        val inputIdsTensor = TensorBuffer.createFixedSize(inputShape, DataType.FLOAT32)
-        val segmentIdsTensor = TensorBuffer.createFixedSize(inputShape, DataType.FLOAT32)
-
-        inputIdsTensor.loadArray(tokenIdsFloatArray)
-        segmentIdsTensor.loadArray(segmentIdsFloatArray)
-
-        // Log the tensor data to ensure correctness
-        Log.d("BertHelper", "Token IDs tensor data: ${tokenIdsFloatArray.contentToString()}")
-        Log.d("BertHelper", "Segment IDs tensor data: ${segmentIdsFloatArray.contentToString()}")
-
-        // Create output tensor
-        val outputTensorDataType = bertInterpreter.getOutputTensor(0).dataType()
+        Log.d("BertHelper", "Input tensor shape: ${inputTensorShape.contentToString()}")
         Log.d("BertHelper", "Output tensor shape: ${outputTensorShape.contentToString()}")
-        Log.d("BertHelper", "Output tensor data type: ${outputTensorDataType}")
+        Log.d("BertHelper", "Input tensor data type: $inputDataType")
+        Log.d("BertHelper", "Output tensor data type: $outputDataType")
 
-        val outputTensor = TensorBuffer.createFixedSize(outputTensorShape, outputTensorDataType)
+        // Prepare the input tensors
+        val inputIdsTensor = TensorBuffer.createFixedSize(inputTensorShape, inputDataType)
+        val attentionMaskTensor = TensorBuffer.createFixedSize(inputTensorShape, inputDataType)
+        val outputTensor = TensorBuffer.createFixedSize(outputTensorShape, outputDataType)
 
-        // Log expected number of input tensors
-        Log.d("BertHelper", "Expected number of input tensors: ${bertInterpreter.inputTensorCount}")
+        // Load hardcoded data into tensors
+        inputIdsTensor.loadArray(inputIds, inputTensorShape)
+        attentionMaskTensor.loadArray(attentionMask, inputTensorShape)
 
-        // Ensure the number of input tensors matches the model's expectations
-        if (bertInterpreter.inputTensorCount != 2) {
-            throw IllegalArgumentException("Model expects 2 input tensors.")
-        }
+        Log.d("BertHelper", "Input tensor data: ${inputIdsTensor.floatArray.contentToString()}")
+        Log.d("BertHelper", "Attention mask tensor data: ${attentionMaskTensor.floatArray.contentToString()}")
+        Log.d("BertHelper", "Output tensor data: ${outputTensor.floatArray.contentToString()}")
 
         // Run inference
-        val inputs = arrayOf(inputIdsTensor.buffer, segmentIdsTensor.buffer)
-        val outputs = hashMapOf(0 to outputTensor.buffer)
-
         try {
-            bertInterpreter.runForMultipleInputsOutputs(inputs, outputs as Map<Int, Any>)
+            bertInterpreter.run(inputIdsTensor.buffer, outputTensor.buffer)
         } catch (e: Exception) {
             Log.e("BertHelper", "Error running inference: ${e.message}")
             throw e
